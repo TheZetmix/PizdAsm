@@ -1,0 +1,4 @@
+gcc -DDEBUG -g ~/Programming/pasm/dc.c -o  ~/Programming/pasm/dcd
+echo -e "\e[1;32mdc.c\e[0m скомпилирован в DEBUG режиме - dcd"
+gcc  -g ~/Programming/pasm/dc.c -o  ~/Programming/pasm/dc
+echo -e "\e[1;32mdc.c\e[0m скомпилирован в обычном режиме - dc"
