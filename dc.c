@@ -297,9 +297,10 @@ void SystemDump(Register *reg, CMP_Flags flags, Memory memory_module, RET_Stack 
 
     printf("\nDefine Variable stack: \n");
     for (int i = 0; i < memory_module.VariableStackTop; ++i) {
-        printf("[%d | %s] => %d - 0x%02X\n",
+        printf("[%d | %s] => %d - 0x%02X - %c\n",
                i,
                memory_module.VariableStack[i].name,
+               memory_module.VariableStack[i].value,
                memory_module.VariableStack[i].value,
                memory_module.VariableStack[i].value);
     }
@@ -386,7 +387,10 @@ int main(int argc, char *argv[]) {
     
     ReadFile(argv[1], &line_count, &buffer, &source);
 
-    int section_executable = 1;
+    int section_use_executable = 1;
+    int section_main_executable = 1;
+    int section_func_executable = 1;
+    int section_data_executable = 1;
     
     for (int current_line = 0; current_line < line_count; ++current_line) {        
         int command_num = 0;
@@ -407,9 +411,11 @@ int main(int argc, char *argv[]) {
             if (!strcmp(command[1], ".use"))  section_executable = 1;
         }
         if (!strcmp(command[0], "endsec")) section_executable = 0;
-        
 
+
+        
         if (!section_executable) continue;
+
 
         
         // PREPROCESSOR

@@ -8,6 +8,15 @@
 #define MAX_TOKEN_LEN 256
 #define MAX_SIZE 1024
 
+int in(char *str, char **str_list, int len) {
+    for (int i = 0; i < len; ++i) {
+        if (!strcmp(str, str_list[i])) {
+            return 1;
+        } 
+    }
+    return 0;
+}
+
 int is_label(char *msg) {
     char label = ':';
     int label_pos;
