@@ -152,6 +152,9 @@ uint32_t GetRegisterValue(Register *reg, Memory *mem, char *RegName) {
                 return mem->VariableStack[i].value;
         }
     }
+    if (RegName[0] == '$') {
+        return (int)RegName[1];
+    }
     return -1;
 }
 
@@ -169,7 +172,9 @@ int is_register(char *str, Memory *mem) {
         if (!strcmp(mem->VariableStack[i].name, str))
             return 1;
     }
-    
+    if (str[0] == '$') {
+        return 1;
+    }
     return 0;
 }
 
