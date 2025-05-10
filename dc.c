@@ -6,9 +6,6 @@ also my englichino is really bad, so sorry
   
  */
 
-// PEEEEENIIIIIIS
-
-
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
