@@ -8,6 +8,35 @@
 #define MAX_TOKEN_LEN 256
 #define MAX_SIZE 1024
 
+int is_label(char *msg) {
+    char label = ':';
+    int label_pos;
+    for (int i = 0; i < strlen(msg); ++i) {
+        if (msg[i] == label) {
+            label_pos = i;
+            break;
+        }
+    }
+    if (strlen(msg)-1 == label_pos) {
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
+int is_number(char *msg) {
+    int is_number = 1;
+    if (msg[0] == '0' && msg[1] == 'x') return is_number;
+    for (int i = 0; i < strlen(msg); ++i) {
+        int ascii = msg[i] & 0xFF;
+        if (ascii < 48 || ascii > 57) {
+            is_number = 0;
+            break;
+        }
+    }
+    return is_number;
+}
+
 // Проверка является ли строка числом в hex
 int is_hex(const char *str) {
     return str[0] == '0' && tolower(str[1]) == 'x';

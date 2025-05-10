@@ -319,6 +319,7 @@ void ReadFile(char* name, int* line_count, char (*buffer)[MAX8], char (*source)[
     if (file == NULL) return;  // Просто выходим, если файл не открылся
     
     while (fgets(*buffer, sizeof(*buffer), file) != NULL) {
+        if (strstr(*buffer, "db") && !strstr(*buffer, ":")) *buffer[0] = 'B';
         (*buffer)[strcspn(*buffer, "\n")] = '\0';
         strcpy((*source)[*line_count], *buffer);
         (*line_count)++;
@@ -348,7 +349,7 @@ int main(int argc, char *argv[]) {
     INSTRUCTION DECR;    InstructionInitialize("dec",     4, 1, 13, &DECR);
     INSTRUCTION DUMP;    InstructionInitialize("dump",    4, 2, 14, &DUMP);
     INSTRUCTION LOAD;    InstructionInitialize("load",    4, 2, 15, &LOAD);
-    INSTRUCTION DUMPSTR; InstructionInitialize("dumpstr", 7, 3, 16, &DUMPSTR);
+    INSTRUCTION DB;      InstructionInitialize("db",      2, 0, 16, &DB);
     INSTRUCTION MEMSET;  InstructionInitialize("memset",  7, 2, 17, &MEMSET);
     INSTRUCTION AND;     InstructionInitialize("and",     3, 2, 18, &AND);
     INSTRUCTION OR;      InstructionInitialize("or",      2, 2, 19, &OR);
@@ -362,8 +363,10 @@ int main(int argc, char *argv[]) {
     INSTRUCTION LOADF;   InstructionInitialize("loadf",   5, 3, 27, &LOADF);
     INSTRUCTION READF;   InstructionInitialize("readf",   5, 2, 28, &READF);
     INSTRUCTION DEFINE;  InstructionInitialize("define",  7, 2, 29, &DEFINE);
-    INSTRUCTION FREE;    InstructionInitialize("free",    5, 1, 30, &FREE);
-    INSTRUCTION ARG;     InstructionInitialize("arg",     5, 1, 31, &ARG);
+    INSTRUCTION FREE;    InstructionInitialize("free",    4, 1, 30, &FREE);
+    INSTRUCTION ARG;     InstructionInitialize("arg",     3, 1, 31, &ARG);
+    INSTRUCTION PUSHA;   InstructionInitialize("pusha",   5, 0, 32, &PUSHA);
+    INSTRUCTION POPA;    InstructionInitialize("popa",    4, 0, 33, &POPA);
     
     
     Register reg;
@@ -396,8 +399,9 @@ int main(int argc, char *argv[]) {
             if (!strcmp(command[1], ".func")) section_executable = 0;
             if (!strcmp(command[1], ".main")) section_executable = 1;
             if (!strcmp(command[1], ".data")) section_executable = 1;
+            if (!strcmp(command[1], ".use"))  section_executable = 1;
         }
-        if (!strcmp(command[0], "data.")) section_executable = 0;
+        if (!strcmp(command[0], "endsec")) section_executable = 0;
         
 
         if (!section_executable) continue;
@@ -415,7 +419,6 @@ int main(int argc, char *argv[]) {
             } else if (!is_register(command[2], &memory_module)) {
                 memory_module.VariableStack[memory_module.VariableStackTop].value = strtol(command[2], NULL, is_hex(command[2]) ? 16 : 10);
             }
-                
             memory_module.VariableStackTop++;
         }
         if (!strcmp(command[0], FREE.name)) {
@@ -578,7 +581,7 @@ int main(int argc, char *argv[]) {
             continue;
         }
         
-
+        // CMP
         if (strcmp(command[0], CMP.name) == 0) {
             if (command_num-1 > CMP.args || command_num-1 < CMP.args) {
                 TRACEBACK(current_line+1, format("invalid number of arguments (expected %d)", CMP.args), source[current_line]);
@@ -708,7 +711,7 @@ int main(int argc, char *argv[]) {
                 printf("%d | %s\n", current_line+i, source[current_line+i-1]);
             }
             printf("\ntrap at %d\n", current_line+1);
-            printf("\nreg - register dump\nmem - memory dump\nfile - check file content\nc - clear\nq - exit\n");
+            printf("\nreg - register dump\nmem - memory dump\nfile - check file content\nr - continue executing\nc - clear\nq - exit\n");
             // interactive trap
             while (1) {
                 char buffer[MAX8];
@@ -718,6 +721,7 @@ int main(int argc, char *argv[]) {
                 if (!strcmp(buffer, "reg"))  PrintRegister(&reg);
                 if (!strcmp(buffer, "mem"))  SystemDump(&reg, flags, memory_module, stack_t);    
                 if (!strcmp(buffer, "file")) for (int i = 0; i < line_count; ++i) printf("%d \t| %s\n", i+1, source[i]);
+                if (!strcmp(buffer, "r"))    break;
                 if (!strcmp(buffer, "c"))    system("clear");
                 if (!strcmp(buffer, "q"))    goto debug_end;
             }
@@ -781,14 +785,8 @@ int main(int argc, char *argv[]) {
             }
                 
             case 0x30: { // STRLEN INTERRUPT
-                uint32_t address;
+                uint32_t address = GetRegisterValue(&reg, &memory_module, "SI");
                 uint16_t len = 0;
-                
-                if (is_register(command[2], &memory_module)) {
-                    address = GetRegisterValue(&reg, &memory_module, command[2]);                
-                } else if (!is_register(command[2], &memory_module)) {
-                    address = strtol(command[2], NULL, is_hex(command[2]) ? 16 : 10);                
-                }
                 
                 for (int i = 0; i != MAX16; ++i) {
                     len++;
@@ -854,91 +852,136 @@ int main(int argc, char *argv[]) {
                 TRACEBACK(current_line+1, format("invalid number of arguments (expected %d)", LOAD.args), source[current_line]);
             }
             
-            uint32_t address;            
+            uint32_t address = 0;      
+            
+            if (is_register(command[2], &memory_module)) {
+                address = GetRegisterValue(&reg, &memory_module, command[2]);
+            } else if (!is_register(command[2], &memory_module)) {
+                address = strtol(command[2], NULL, is_hex(command[2]) ? 16 : 10);
+            }
             if (address >= MAX16) {
                 TRACEBACK(current_line+1, "memory access out of bounds", source[current_line]);
             }
-            
-            if (is_register(command[2], &memory_module)) {
-                EditRegister(&reg, &memory_module, command[1], memory_module.MemStack[GetRegisterValue(&reg, &memory_module, command[2])]);
-            } else if (!is_register(command[2], &memory_module)) {
-                EditRegister(&reg, &memory_module, command[1], memory_module.MemStack[strtol(command[2], NULL, is_hex(command[2]) ? 16 : 10)]); 
-            }
+            EditRegister(&reg, &memory_module, command[1], memory_module.MemStack[address]);
         }
 
-        // DUMPSTR
-        if (strcmp(command[0], DUMPSTR.name) == 0) {
-            if (command_num-1 > DUMPSTR.args || command_num-1 < DUMPSTR.args) {
-                TRACEBACK(current_line+1, format("invalid number of arguments (expected %d)", DUMPSTR.args), source[current_line]);
-            }
-
-            char* msg = command[2];
-            uint8_t msg_eof;
-    
-            uint16_t address = BASE_STRING_ADDRESS; // начальный адрес по умолчанию
-            uint16_t required_length = strlen(msg) + 1; // +1 для msg_eof
-    
-            while (1) {
-                int is_free = 1;
-                for (int i = 0; i < required_length; i++) {
-                    if (memory_module.MemStack[address + i] != 0) {
-                        is_free = 0;
-                        break;
-                    }
-                }
-        
-                if (is_free) {
-                    break;
-                }
-        
-                address += required_length;
-        
-                if (address + required_length >= sizeof(memory_module.MemStack)) {
-                    TRACEBACK(current_line+1, "not enough memory for string", source[current_line]);
-                }
-            }
-    
-            if (is_register(command[3], &memory_module)) {
-                msg_eof = GetRegisterValue(&reg, &memory_module, command[3]);                
-            } else if (!is_register(command[3], &memory_module)) {
-                msg_eof = strtol(command[3], NULL, is_hex(command[3]) ? 16 : 10);                
-            }
-    
-            for (int i = 0, j = 0; i < strlen(msg); i++, j++) {
-                if (msg[i] == '\\') {
-                    switch(msg[i+1]) {
-                    case '0':  memory_module.MemStack[address + j] = 0x00; break;  // \0 Null character
-                    case 'a':  memory_module.MemStack[address + j] = 0x07; break;  // \a Bell (Alert)
-                    case 'b':  memory_module.MemStack[address + j] = 0x08; break;  // \b Backspace
-                    case 't':  memory_module.MemStack[address + j] = 0x09; break;  // \t Horizontal Tab
-                    case 'n':  memory_module.MemStack[address + j] = 0x0A; break;  // \n Line Feed
-                    case 'v':  memory_module.MemStack[address + j] = 0x0B; break;  // \v Vertical Tab
-                    case 'f':  memory_module.MemStack[address + j] = 0x0C; break;  // \f Form Feed
-                    case 'r':  memory_module.MemStack[address + j] = 0x0D; break;  // \r Carriage Return
-                    case 'e':  memory_module.MemStack[address + j] = 0x1B; break;  // \e Escape
-                    case 'x': {
-                        char hex[3] = {msg[i+2], msg[i+3], '\0'};
-                        memory_module.MemStack[address + j] = (char)strtol(hex, NULL, 16);
-                        i += 2;
-                        break;
-                    }
-                    default:
-                        memory_module.MemStack[address + j] = msg[i];
-                        i--;
-                        break;
-                    }
-                    i++;
-                } else {
-                    memory_module.MemStack[address + j] = msg[i];  // Обычный символ
-                }
-                memory_module.MemStack[address + j + 1] = msg_eof;
-            }
-
-            strcpy(memory_module.VariableStack[memory_module.VariableStackTop].name, command[1]);
-            memory_module.VariableStack[memory_module.VariableStackTop].value = address;
-            memory_module.VariableStackTop++;
+        // DB instruction handling
+        if (command[1] && !strcmp(command[1], DB.name)) {
             
-            // printf("String stored at address 0x%04X, length %d bytes\n", address, required_length);
+            
+            int named = 0;
+            if (strstr(source[current_line], ": ") && !is_label(source[current_line])) {
+                named = 1;
+            }
+            command[0][strlen(command[0])-1] = '\0';
+        
+            // Handle numeric values (stored in 0x4000+ range)
+            if (is_number(command[2]) || is_register(command[2], &memory_module)) {
+                uint16_t address = 0x4000; // начальный адрес для чисел
+                
+                // Find free space for the number
+                while (memory_module.MemStack[address] != 0 && address < sizeof(memory_module.MemStack)) {
+                    address++;
+                }
+
+                if (address >= sizeof(memory_module.MemStack)) {
+                    TRACEBACK(current_line+1, "not enough memory for number", source[current_line]);
+                }
+        
+                // Store the number
+                long num_value;
+                if (is_register(command[2], &memory_module)) {
+                    num_value = GetRegisterValue(&reg, &memory_module, command[2]);                
+                } else if (!is_register(command[2], &memory_module)) {
+                    num_value = strtol(command[2], NULL, is_hex(command[2]) ? 16 : 10);                
+                }
+                memory_module.MemStack[address] = num_value;
+                
+        
+                // Create variable entry
+                if (named) {
+                    strcpy(memory_module.VariableStack[memory_module.VariableStackTop].name, command[0]);
+                    memory_module.VariableStack[memory_module.VariableStackTop].value = address;
+                    memory_module.VariableStackTop++;
+                }
+            }
+            // Handle string values (stored in BASE_STRING_ADDRESS range)
+            else {
+             
+                char* msg = command[2];
+                uint8_t msg_eof = 0xEF; // default terminator
+                
+                // Check if terminator is explicitly specified (after quoted string)
+                if (command[3] && strstr(source[current_line], "\"")) {
+                    if (is_register(command[3], &memory_module)) {
+                        msg_eof = GetRegisterValue(&reg, &memory_module, command[3]);
+                    } else {
+                        msg_eof = strtol(command[3], NULL, is_hex(command[3]) ? 16 : 10);
+                    }
+                }
+        
+                uint16_t address = BASE_STRING_ADDRESS; // начальный адрес для строк
+                uint16_t required_length = strlen(msg) + 1; // +1 для msg_eof
+        
+                // Find free space for the string
+                while (1) {
+                    int is_free = 1;
+                    for (int i = 0; i < required_length; i++) {
+                        if (memory_module.MemStack[address + i] != 0) {
+                            is_free = 0;
+                            break;
+                        }
+                    }
+            
+                    if (is_free) {
+                        break;
+                    }
+            
+                    address += required_length;
+            
+                    if (address + required_length >= 0xFFFF) { // Don't go into number space
+                        TRACEBACK(current_line+1, "not enough memory for string", source[current_line]);
+                    }
+                }
+        
+                // Process string with escape sequences
+                for (int i = 0, j = 0; i < strlen(msg); i++, j++) {
+                    if (msg[i] == '\\') {
+                        switch(msg[i+1]) {
+                        case '0':  memory_module.MemStack[address + j] = 0x00; break;  // \0 Null character
+                        case 'a':  memory_module.MemStack[address + j] = 0x07; break;  // \a Bell (Alert)
+                        case 'b':  memory_module.MemStack[address + j] = 0x08; break;  // \b Backspace
+                        case 't':  memory_module.MemStack[address + j] = 0x09; break;  // \t Horizontal Tab
+                        case 'n':  memory_module.MemStack[address + j] = 0x0A; break;  // \n Line Feed
+                        case 'v':  memory_module.MemStack[address + j] = 0x0B; break;  // \v Vertical Tab
+                        case 'f':  memory_module.MemStack[address + j] = 0x0C; break;  // \f Form Feed
+                        case 'r':  memory_module.MemStack[address + j] = 0x0D; break;  // \r Carriage Return
+                        case 'e':  memory_module.MemStack[address + j] = 0x1B; break;  // \e Escape
+                        case 'x': {
+                            char hex[3] = {msg[i+2], msg[i+3], '\0'};
+                            memory_module.MemStack[address + j] = (char)strtol(hex, NULL, 16);
+                            i += 2;
+                            break;
+                        }
+                        default:
+                            memory_module.MemStack[address + j] = msg[i];
+                            i--;
+                            break;
+                        }
+                        i++;
+                    } else {
+                        memory_module.MemStack[address + j] = msg[i];  // Обычный символ
+                    }
+                    memory_module.MemStack[address + j + 1] = msg_eof;
+                }
+        
+                // Create variable entry
+                if (named) {
+                    strcpy(memory_module.VariableStack[memory_module.VariableStackTop].name, command[0]);
+                    memory_module.VariableStack[memory_module.VariableStackTop].value = address;
+                    memory_module.VariableStackTop++;
+                }
+            }   
         }
         
         // AND
@@ -1184,6 +1227,30 @@ int main(int argc, char *argv[]) {
             EditRegister(&reg, &memory_module, command[1], memory_module.ArgumentSector[memory_module.ArgumentSectorTop]);
         }
 
+        if (!strcmp(command[0], PUSHA.name)) {
+            if (command_num-1 != PUSHA.args) {
+                TRACEBACK(current_line+1, format("invalid number of arguments (expected %d)", PUSHA.args), source[current_line]);
+            }
+            int BASE_ADDR = 0x64;
+            
+            for (int i = 0; i < 24; ++i) {
+                memory_module.RegSector[BASE_ADDR + i] = GetRegisterValue(&reg, &memory_module, registers[i]);
+                memory_module.RegSectorTop++;
+            }
+        }
+        if (!strcmp(command[0], POPA.name)) {
+            if (command_num-1 != POPA.args) {
+                TRACEBACK(current_line+1, format("invalid number of arguments (expected %d)", POPA.args), source[current_line]);
+            }
+            int BASE_ADDR = 0x64;
+            
+            for (int i = 0; i < 24; ++i) {
+                EditRegister(&reg, &memory_module, registers[i], memory_module.RegSector[BASE_ADDR + i]);
+                memory_module.RegSector[BASE_ADDR + i] = 0;
+                memory_module.RegSectorTop--;
+            }
+            
+        }
         
         FreeTokens(command);
     }
