@@ -1,3 +1,5 @@
+    ;; Функция puts и вывод хело ворлд
+
 section .func
 puts:
     pusha
