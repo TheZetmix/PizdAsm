@@ -218,7 +218,7 @@ void PrintRegister(const Register *reg) {
 void TRACEBACK(int line, char* msg, char* line_content) {
     printf(" %d | %s\n\n\033[1m\033[31merror:\033[0m %s\n", line, line_content, msg);
     #ifndef DEBUG
-    exit(0);
+    _Exit(69);
     #endif
 }
 
@@ -403,8 +403,9 @@ int main(int argc, char *argv[]) {
         }
         
         // sleep_ms(50);
-        if (!command) continue;    
-        
+        if (!command) continue;
+
+        // sections implementation (temp)
         if (!strcmp(command[0], "section")) {
             if (!strcmp(command[1], ".func")) section_executable = 0;
             if (!strcmp(command[1], ".main")) section_executable = 1;
@@ -820,6 +821,7 @@ int main(int argc, char *argv[]) {
             }
         }
 
+        // INCREMENT
         if (strcmp(command[0], INCR.name) == 0) {
             if (command_num-1 > INCR.args || command_num-1 < INCR.args) {
                 TRACEBACK(current_line+1, format("invalid number of arguments (expected %d)", INCR.args), source[current_line]);
@@ -827,7 +829,7 @@ int main(int argc, char *argv[]) {
             EditRegister(&reg, &memory_module, command[1], GetRegisterValue(&reg, &memory_module, command[1])+1);
         
         }
-
+        // DECREMENT
         if (strcmp(command[0], DECR.name) == 0) {
             if (command_num-1 > DECR.args || command_num-1 < DECR.args) {
                 TRACEBACK(current_line+1, format("invalid number of arguments (expected %d)", DECR.args), source[current_line]);
@@ -1225,7 +1227,7 @@ int main(int argc, char *argv[]) {
             fwrite(&byte, sizeof(unsigned char), 1, fp);
         }
         
-        if (!strcmp(command[0], READF.name)) {}
+        if (!strcmp(command[0], READF.name)) {TRACEBACK(current_line+1, "not implemented", source[current_line]);}
         if (!strcmp(command[0], ARG.name)) {
             if (command_num-1 != USE.args) {
                 TRACEBACK(current_line+1, format("invalid number of arguments (expected %d)", USE.args), source[current_line]);
@@ -1238,7 +1240,8 @@ int main(int argc, char *argv[]) {
             memory_module.ArgumentSectorTop--;
             EditRegister(&reg, &memory_module, command[1], memory_module.ArgumentSector[memory_module.ArgumentSectorTop]);
         }
-
+        
+        // PUSHA
         if (!strcmp(command[0], PUSHA.name)) {
             if (command_num-1 != PUSHA.args) {
                 TRACEBACK(current_line+1, format("invalid number of arguments (expected %d)", PUSHA.args), source[current_line]);
@@ -1250,6 +1253,8 @@ int main(int argc, char *argv[]) {
                 memory_module.RegSectorTop++;
             }
         }
+
+        // POPA
         if (!strcmp(command[0], POPA.name)) {
             if (command_num-1 != POPA.args) {
                 TRACEBACK(current_line+1, format("invalid number of arguments (expected %d)", POPA.args), source[current_line]);
