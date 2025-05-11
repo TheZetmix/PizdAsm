@@ -15,5 +15,5 @@ int main() {
     char msg[] = ".main";
     char *list[] = {".use", ".data", ".func"};
     printf("%d\n", sizeof(list)/sizeof(list[0]));
-    printf("%d\n", in(msg, list, sizeof(list)/sizeof(list[0])));
+    printf("%d\n", in(msg, {".main", ".data"}, 2);
 }

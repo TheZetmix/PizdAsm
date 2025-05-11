@@ -1,5 +1,5 @@
 section .use
-
+    use "io.asm"
 endsec
 
 section .func
@@ -12,4 +12,3 @@ endsec
 
 section .main
     int 0x00
-    

@@ -19,7 +19,7 @@ also my englichino is really bad, so sorry
 #include "Interpretator.c"
 #include "registers.c"
 
-#define VERSION "0.7.1"
+#define VERSION "0.8.0"
 
 #define MAX32 2147483647
 #define MAX16 65535
@@ -338,7 +338,7 @@ int main(int argc, char *argv[]) {
     if (argv == NULL || argv[0] == NULL) {
         printf("Invalid arguments!\n");
         return 1;
-    }
+    }    
     INSTRUCTION MOV;     InstructionInitialize("mov",     3, 2, 0,  &MOV);
     INSTRUCTION ADD;     InstructionInitialize("add",     3, 2, 1,  &ADD);
     INSTRUCTION SUB;     InstructionInitialize("sub",     3, 2, 2,  &SUB);
@@ -347,32 +347,36 @@ int main(int argc, char *argv[]) {
     INSTRUCTION POW;     InstructionInitialize("pow",     3, 2, 5,  &POW);
     INSTRUCTION JMP;     InstructionInitialize("jmp",     3, 1, 6,  &JMP);
     INSTRUCTION CMP;     InstructionInitialize("cmp",     3, 2, 7,  &CMP);
-    INSTRUCTION CALL;    InstructionInitialize("call",    4, 1, 8,  &CALL);
-    INSTRUCTION RET;     InstructionInitialize("ret",     3, 0, 9,  &RET);
-    INSTRUCTION TRAP;    InstructionInitialize("trap",    4, 0, 10, &TRAP);
-    INSTRUCTION INT;     InstructionInitialize("int",     3, 9, 11, &INT);
-    INSTRUCTION INCR;    InstructionInitialize("inc",     4, 1, 12, &INCR);
-    INSTRUCTION DECR;    InstructionInitialize("dec",     4, 1, 13, &DECR);
-    INSTRUCTION DUMP;    InstructionInitialize("dump",    4, 2, 14, &DUMP);
-    INSTRUCTION LOAD;    InstructionInitialize("load",    4, 2, 15, &LOAD);
-    INSTRUCTION DB;      InstructionInitialize("db",      2, 0, 16, &DB);
-    INSTRUCTION MEMSET;  InstructionInitialize("memset",  7, 2, 17, &MEMSET);
-    INSTRUCTION AND;     InstructionInitialize("and",     3, 2, 18, &AND);
-    INSTRUCTION OR;      InstructionInitialize("or",      2, 2, 19, &OR);
-    INSTRUCTION XOR;     InstructionInitialize("xor",     3, 2, 20, &XOR);
-    INSTRUCTION NOT;     InstructionInitialize("not",     3, 1, 21, &NOT);
-    INSTRUCTION PUSH;    InstructionInitialize("push",    4, 1, 22, &PUSH);
-    INSTRUCTION POP;     InstructionInitialize("pop",     3, 1, 23, &POP);
-    INSTRUCTION FEXEC;   InstructionInitialize("fexec",   4, 1, 24, &FEXEC);
-    INSTRUCTION CMPSTR;  InstructionInitialize("cmpstr",  6, 2, 25, &CMPSTR);
-    INSTRUCTION USE;     InstructionInitialize("use",     3, 1, 26, &USE);
-    INSTRUCTION LOADF;   InstructionInitialize("loadf",   5, 3, 27, &LOADF);
-    INSTRUCTION READF;   InstructionInitialize("readf",   5, 2, 28, &READF);
-    INSTRUCTION DEFINE;  InstructionInitialize("define",  7, 2, 29, &DEFINE);
-    INSTRUCTION FREE;    InstructionInitialize("free",    4, 1, 30, &FREE);
-    INSTRUCTION ARG;     InstructionInitialize("arg",     3, 1, 31, &ARG);
-    INSTRUCTION PUSHA;   InstructionInitialize("pusha",   5, 0, 32, &PUSHA);
-    INSTRUCTION POPA;    InstructionInitialize("popa",    4, 0, 33, &POPA);
+    INSTRUCTION JE;      InstructionInitialize("je",      2, 1, 8,  &JE);
+    INSTRUCTION JNE;     InstructionInitialize("jne",     3, 1, 9,  &JNE);
+    INSTRUCTION JG;      InstructionInitialize("jg",      2, 1, 10, &JG);
+    INSTRUCTION JL;      InstructionInitialize("jl",      2, 1, 11, &JL);
+    INSTRUCTION CALL;    InstructionInitialize("call",    4, 1, 12, &CALL);
+    INSTRUCTION RET;     InstructionInitialize("ret",     3, 0, 13, &RET);
+    INSTRUCTION TRAP;    InstructionInitialize("trap",    4, 0, 14, &TRAP);
+    INSTRUCTION INT;     InstructionInitialize("int",     3, 9, 15, &INT);
+    INSTRUCTION INCR;    InstructionInitialize("inc",     4, 1, 16, &INCR);
+    INSTRUCTION DECR;    InstructionInitialize("dec",     4, 1, 17, &DECR);
+    INSTRUCTION DUMP;    InstructionInitialize("dump",    4, 2, 18, &DUMP);
+    INSTRUCTION LOAD;    InstructionInitialize("load",    4, 2, 19, &LOAD);
+    INSTRUCTION DB;      InstructionInitialize("db",      2, 0, 20, &DB);
+    INSTRUCTION MEMSET;  InstructionInitialize("memset",  7, 2, 21, &MEMSET);
+    INSTRUCTION AND;     InstructionInitialize("and",     3, 2, 22, &AND);
+    INSTRUCTION OR;      InstructionInitialize("or",      2, 2, 23, &OR);
+    INSTRUCTION XOR;     InstructionInitialize("xor",     3, 2, 24, &XOR);
+    INSTRUCTION NOT;     InstructionInitialize("not",     3, 1, 25, &NOT);
+    INSTRUCTION PUSH;    InstructionInitialize("push",    4, 1, 26, &PUSH);
+    INSTRUCTION POP;     InstructionInitialize("pop",     3, 1, 27, &POP);
+    INSTRUCTION FEXEC;   InstructionInitialize("fexec",   4, 1, 28, &FEXEC);
+    INSTRUCTION CMPSTR;  InstructionInitialize("cmpstr",  6, 2, 29, &CMPSTR);
+    INSTRUCTION USE;     InstructionInitialize("use",     3, 1, 30, &USE);
+    INSTRUCTION LOADF;   InstructionInitialize("loadf",   5, 3, 31, &LOADF);
+    INSTRUCTION READF;   InstructionInitialize("readf",   5, 2, 32, &READF);
+    INSTRUCTION DEFINE;  InstructionInitialize("define",  7, 2, 33, &DEFINE);
+    INSTRUCTION FREE;    InstructionInitialize("free",    4, 1, 34, &FREE);
+    INSTRUCTION ARG;     InstructionInitialize("arg",     3, 1, 35, &ARG);
+    INSTRUCTION PUSHA;   InstructionInitialize("pusha",   5, 0, 36, &PUSHA);
+    INSTRUCTION POPA;    InstructionInitialize("popa",    4, 0, 37, &POPA);
     
     
     Register reg;
@@ -387,10 +391,7 @@ int main(int argc, char *argv[]) {
     
     ReadFile(argv[1], &line_count, &buffer, &source);
 
-    int section_use_executable = 1;
-    int section_main_executable = 1;
-    int section_func_executable = 1;
-    int section_data_executable = 1;
+    int section_executable = 1;
     
     for (int current_line = 0; current_line < line_count; ++current_line) {        
         int command_num = 0;
@@ -412,7 +413,7 @@ int main(int argc, char *argv[]) {
         }
         if (!strcmp(command[0], "endsec")) section_executable = 0;
 
-
+        
         
         if (!section_executable) continue;
 
